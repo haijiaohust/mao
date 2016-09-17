@@ -1386,7 +1386,11 @@ static void f2fs_write_failed(struct address_space *mapping, loff_t to)
 	struct inode *inode = mapping->host;
 
 	if (to > inode->i_size) {
-		truncate_pagecache(inode, 0, inode->i_size);
+#ifdef __LINUX_ARM_ARCH__
+	truncate_pagecache(inode, 0, inode->i_size);
+#else
+	truncate_pagecache(inode, inode->i_size);
+#endif
 		truncate_blocks(inode, inode->i_size, true);
 	}
 }
