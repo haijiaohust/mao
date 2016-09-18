@@ -974,7 +974,7 @@ static int f2fs_collapse_range(struct inode *inode, loff_t offset, loff_t len)
 	if (ret)
 		return ret;
 
-#ifdef __LINUX_ARM_ARCH__
+#if defined(__LINUX_ARM_ARCH__) || defined(CONFIG_GOLDFISH)
 	truncate_pagecache(inode, 0, offset);
 #else
 	truncate_pagecache(inode, offset);
@@ -985,14 +985,14 @@ static int f2fs_collapse_range(struct inode *inode, loff_t offset, loff_t len)
 
 	/* write out all moved pages, if possible */
 	filemap_write_and_wait_range(inode->i_mapping, offset, LLONG_MAX);
-#ifdef __LINUX_ARM_ARCH__
+#if defined(__LINUX_ARM_ARCH__) || defined(CONFIG_GOLDFISH)
 	truncate_pagecache(inode, 0, offset);
 #else	
 	truncate_pagecache(inode, offset);
 #endif
 
 	new_size = i_size_read(inode) - len;
-#ifdef __LINUX_ARM_ARCH__
+#if defined(__LINUX_ARM_ARCH__) || defined(CONFIG_GOLDFISH)
 	truncate_pagecache(inode, 0, new_size);
 #else
 	truncate_pagecache(inode, new_size);	
@@ -1148,7 +1148,7 @@ static int f2fs_insert_range(struct inode *inode, loff_t offset, loff_t len)
 	if (ret)
 		return ret;
 
-#ifdef __LINUX_ARM_ARCH__
+#if defined(__LINUX_ARM_ARCH__) || defined(CONFIG_GOLDFISH)
 	truncate_pagecache(inode, 0, offset);	
 #else
 	truncate_pagecache(inode, offset);
@@ -1169,7 +1169,7 @@ static int f2fs_insert_range(struct inode *inode, loff_t offset, loff_t len)
 
 	/* write out all moved pages, if possible */
 	filemap_write_and_wait_range(inode->i_mapping, offset, LLONG_MAX);
-#ifdef __LINUX_ARM_ARCH__
+#if defined(__LINUX_ARM_ARCH__) || defined(CONFIG_GOLDFISH)
 	truncate_pagecache(inode, 0, offset);
 #else
 	truncate_pagecache(inode, offset);
@@ -1242,7 +1242,7 @@ noalloc:
 	return ret;
 }
 
-#ifdef __LINUX_ARM_ARCH__
+#if defined(__LINUX_ARM_ARCH__) || defined(CONFIG_GOLDFISH)
 #define FALLOC_FL_COLLAPSE_RANGE	0X08
 #define FALLOC_FL_ZERO_RANGE		0X10
 #endif
