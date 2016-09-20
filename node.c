@@ -924,8 +924,10 @@ int remove_inode_page(struct inode *inode)
 		truncate_data_blocks_range(&dn, 1);
 
 	/* 0 is possible, after f2fs_new_inode() has failed */
-	f2fs_bug_on(F2FS_I_SB(inode),
-			inode->i_blocks != 0 && inode->i_blocks != 1);
+	//f2fs_bug_on(F2FS_I_SB(inode),
+			//inode->i_blocks != 0 && inode->i_blocks != 1);
+
+	printk("inode->i_blocks:%llu\n",(unsigned long long)inode->i_blocks);
 
 	/* will put inode & node pages */
 	truncate_node(&dn);

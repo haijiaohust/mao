@@ -147,6 +147,7 @@ no_update:
 	dirty = clear_page_dirty_for_io(page);
 
 	/* write data page to try to make data consistent */
+
 	set_page_writeback(page);
 	fio.blk_addr = dn->data_blkaddr;
 	write_data_page(dn, &fio);

@@ -31,6 +31,7 @@
 #include "xattr.h"
 #include "gc.h"
 #include "trace.h"
+#include "dedupe.h"
 
 #define CREATE_TRACE_POINTS
 #include <trace/events/f2fs.h>
@@ -1143,6 +1144,7 @@ try_onemore:
 	if (!sbi)
 		return -ENOMEM;
 
+	init_dedupe_info(&sbi->dedupe_info);
 	/* set a block size */
 	if (unlikely(!sb_set_blocksize(sb, F2FS_BLKSIZE))) {
 		f2fs_msg(sb, KERN_ERR, "unable to set blocksize");
