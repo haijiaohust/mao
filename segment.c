@@ -799,6 +799,17 @@ static void update_sit_entry(struct f2fs_sb_info *sbi, block_t blkaddr, int del)
 
 void refresh_sit_entry(struct f2fs_sb_info *sbi, block_t old, block_t new)
 {
+	update_sit_entry(sbi, new, 1);
+	if (GET_SEGNO(sbi, old) != NULL_SEGNO)
+		update_sit_entry(sbi, old, -1);
+
+	locate_dirty_segment(sbi, GET_SEGNO(sbi, old));
+	locate_dirty_segment(sbi, GET_SEGNO(sbi, new));
+}
+
+
+void refresh_sit_entry_dedupe(struct f2fs_sb_info *sbi, block_t old, block_t new)
+{
 	struct dedupe_info *dedupe_info = NULL;
 	update_sit_entry(sbi, new, 1);
 
@@ -1441,7 +1452,7 @@ int allocate_data_block_dedupe(struct f2fs_sb_info *sbi, struct page *page,
 	 * SIT information should be updated before segment allocation,
 	 * since SSR needs latest valid block information.
 	 */
-	refresh_sit_entry(sbi, old_blkaddr, *new_blkaddr);
+	refresh_sit_entry_dedupe(sbi, old_blkaddr, *new_blkaddr);
 
 	mutex_unlock(&sit_i->sentry_lock);
 
