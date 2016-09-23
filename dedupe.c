@@ -6,8 +6,8 @@
 #include "dedupe.h"
 #include <linux/f2fs_fs.h>
 
-#define DEDUPE_MD_SIZE 12*1024*1024
-#define DEDUPE_MD_ENTRY_COUNT DEDUPE_MD_SIZE/sizeof(struct dedupe)
+#define DEDUPE_MD_SIZE (12*1024*1024)
+#define DEDUPE_MD_ENTRY_COUNT (DEDUPE_MD_SIZE/sizeof(struct dedupe))
 
 int f2fs_dedupe_calc_hash(struct page *p, u8 hash[])
 {
@@ -93,6 +93,11 @@ block_t f2fs_dedupe_search_addr(block_t addr, struct dedupe_info *dedupe_info)
 	return 0;
 }
 
+void set_dedupe_dirty(struct dedupe_info *dedupe_info, struct dedupe *dedupe)
+{
+	set_bit((dedupe - dedupe_info->dedupe_md)/DEDUPE_PER_BLOCK), &dedupe_info->dedupe_md_dirty_bmp[0]);
+}
+
 int f2fs_dedupe_delete_addr(block_t addr, struct dedupe_info *dedupe_info)
 {
 	struct dedupe *cur;
@@ -104,6 +109,7 @@ int f2fs_dedupe_delete_addr(block_t addr, struct dedupe_info *dedupe_info)
 		if(unlikely(cur->ref && addr == cur->addr))
 		{
 			cur->ref--;
+			set_dedupe_dirty(dedupe_info, cur);
 			if(0 == cur->ref)
 			{
 				cur->addr = 0;
@@ -120,6 +126,7 @@ int f2fs_dedupe_delete_addr(block_t addr, struct dedupe_info *dedupe_info)
 		if(unlikely(cur->ref && addr == cur->addr))
 		{
 			cur->ref--;
+			set_dedupe_dirty(dedupe_info, cur);
 			if(0 == cur->ref)
 			{
 				cur->addr = 0;
@@ -161,9 +168,10 @@ int f2fs_dedupe_add(u8 hash[], struct dedupe_info *dedupe_info, block_t addr)
 	if(0 == ret)
 	{	
 		struct dedupe *dedupe = dedupe_info->cur;
-		dedupe->addr = (u32)addr;
+		dedupe->addr = addr;
 		dedupe->ref = 1;
 		memcpy(dedupe->hash, hash, dedupe_info->digest_len);
+		set_dedupe_dirty(dedupe_info, dedupe);
 	}
 	return ret;
 }
@@ -175,8 +183,10 @@ int init_dedupe_info(struct dedupe_info *dedupe_info)
 	dedupe_info->digest_len = 16;
 	spin_lock_init(&dedupe_info->lock);
 	INIT_LIST_HEAD(&dedupe_info->queue);
-	dedupe_info->dedupe_md = vmalloc(12*1024*1024);
-	memset(dedupe_info->dedupe_md, 0, 12*1024*1024);
+	dedupe_info->dedupe_md = vmalloc(DEDUPE_MD_SIZE);
+	memset(dedupe_info->dedupe_md, 0, DEDUPE_MD_SIZE);
+	memset(dedupe_info->dedupe_md_dirty_bmp, 0, 8*sizeof(unsigned long));
+	
 	dedupe_info->cur = dedupe_info->dedupe_md;
 
 	return ret;

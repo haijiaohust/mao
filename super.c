@@ -979,7 +979,8 @@ static int sanity_check_ckpt(struct f2fs_sb_info *sbi)
 	fsmeta += le32_to_cpu(raw_super->segment_count_sit);
 	fsmeta += le32_to_cpu(raw_super->segment_count_nat);
 	fsmeta += le32_to_cpu(ckpt->rsvd_segment_count);
-	fsmeta += le32_to_cpu(raw_super->segment_count_ssa);
+	fsmeta += le32_to_cpu(raw_super->segment_count_ssa);	
+	fsmeta += le32_to_cpu(raw_super->segment_count_dedupe);
 
 	if (unlikely(fsmeta >= total))
 		return 1;
@@ -1145,6 +1146,7 @@ try_onemore:
 		return -ENOMEM;
 
 	init_dedupe_info(&sbi->dedupe_info);
+	
 	/* set a block size */
 	if (unlikely(!sb_set_blocksize(sb, F2FS_BLKSIZE))) {
 		f2fs_msg(sb, KERN_ERR, "unable to set blocksize");
@@ -1357,6 +1359,13 @@ try_onemore:
 	}
 
 	sbi->cp_expires = round_jiffies_up(jiffies);
+
+	for(i=0;i<raw_super->segment_count_dedupe*(2048/4);i++)
+	{	
+		struct page *page = get_meta_page(sbi, raw_super->dedupe_blkaddr + i);
+		memcpy(((char *)sbi->dedupe_info.dedupe_md + i*sbi->blocksize), page_address(page), sbi->blocksize);
+		f2fs_put_page(page, 1);
+	}
 
 	return 0;
 

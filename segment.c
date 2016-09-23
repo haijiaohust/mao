@@ -1415,6 +1415,7 @@ int allocate_data_block_dedupe(struct f2fs_sb_info *sbi, struct page *page,
 	else
 	{
 		dedupe->ref++;
+		set_dedupe_dirty(&sbi->dedupe_info, dedupe);
 		*new_blkaddr = dedupe->addr;
 		spin_unlock(&sbi->dedupe_info.lock);
 

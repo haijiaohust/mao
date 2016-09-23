@@ -1947,6 +1947,23 @@ static void __flush_nat_entry_set(struct f2fs_sb_info *sbi,
 	kmem_cache_free(nat_entry_set_slab, set);
 }
 
+void flush_dedupe_entries(struct f2fs_sb_info *sbi)
+{
+	int i;
+	for(i=0; i<sbi->raw_super->segment_count_dedupe*(2048/4); i++)
+	{	
+		struct page *page = NULL;
+		if(test_and_clear_bit(i, &sbi->dedupe_info.dedupe_md_dirty_bmp[0]))
+		{
+			page = get_meta_page(sbi, sbi->raw_super->dedupe_blkaddr + i);
+			memcpy(page_address(page),((char *)sbi->dedupe_info.dedupe_md + i*sbi->blocksize) , sbi->blocksize);
+			set_page_dirty(page);		
+			f2fs_put_page(page, 1);
+		}
+	}
+}
+
+
 /*
  * This function is called during the checkpointing process.
  */

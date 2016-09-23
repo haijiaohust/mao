@@ -1765,6 +1765,7 @@ int build_node_manager(struct f2fs_sb_info *);
 void destroy_node_manager(struct f2fs_sb_info *);
 int __init create_node_manager_caches(void);
 void destroy_node_manager_caches(void);
+void flush_dedupe_entries(struct f2fs_sb_info *);
 
 /*
  * segment.c
