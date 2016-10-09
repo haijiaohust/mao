@@ -565,6 +565,7 @@ static void f2fs_put_super(struct super_block *sb)
 	kobject_put(&sbi->s_kobj);
 	wait_for_completion(&sbi->s_kobj_unregister);
 
+	exit_dedupe_info(&sbi->dedupe_info);
 	sb->s_fs_info = NULL;
 	brelse(sbi->raw_super_buf);
 	kfree(sbi);
@@ -1144,8 +1145,6 @@ try_onemore:
 	sbi = kzalloc(sizeof(struct f2fs_sb_info), GFP_KERNEL);
 	if (!sbi)
 		return -ENOMEM;
-
-	init_dedupe_info(&sbi->dedupe_info);
 	
 	/* set a block size */
 	if (unlikely(!sb_set_blocksize(sb, F2FS_BLKSIZE))) {
@@ -1360,10 +1359,21 @@ try_onemore:
 
 	sbi->cp_expires = round_jiffies_up(jiffies);
 
-	for(i=0;i<raw_super->segment_count_dedupe*(2048/4);i++)
+	sbi->dedupe_info.dedupe_block_count = le32_to_cpu(raw_super->segment_count_dedupe)/2*(1024/4);
+	sbi->dedupe_info.bitmap_size = sbi->dedupe_info.dedupe_block_count/8;
+	sbi->dedupe_info.dedupe_size = sbi->dedupe_info.dedupe_block_count * DEDUPE_PER_BLOCK * sizeof(struct dedupe);
+	sbi->dedupe_info.dedupe_bitmap = kmemdup(__bitmap_ptr(sbi, DEDUPE_BITMAP), sbi->dedupe_info.bitmap_size, GFP_KERNEL);
+	init_dedupe_info(&sbi->dedupe_info);
+	for(i=0; i<sbi->dedupe_info.dedupe_block_count; i++)
 	{	
-		struct page *page = get_meta_page(sbi, raw_super->dedupe_blkaddr + i);
-		memcpy(((char *)sbi->dedupe_info.dedupe_md + i*sbi->blocksize), page_address(page), sbi->blocksize);
+		u32 dedupe_base_blkaddr = le32_to_cpu(raw_super->dedupe_blkaddr);
+		struct page *page = NULL;
+		if (f2fs_test_bit(i, sbi->dedupe_info.dedupe_bitmap))
+		{
+			dedupe_base_blkaddr+=sbi->dedupe_info.dedupe_block_count;
+		}
+		page = get_meta_page(sbi, dedupe_base_blkaddr + i);
+		memcpy(((char *)sbi->dedupe_info.dedupe_md + i*(DEDUPE_PER_BLOCK * sizeof(struct dedupe))), page_address(page), DEDUPE_PER_BLOCK * sizeof(struct dedupe));
 		f2fs_put_page(page, 1);
 	}
 

@@ -1120,6 +1120,7 @@ void write_checkpoint(struct f2fs_sb_info *sbi, struct cp_control *cpc)
 	f2fs_submit_merged_bio(sbi, DATA, WRITE);
 	f2fs_submit_merged_bio(sbi, NODE, WRITE);
 	f2fs_submit_merged_bio(sbi, META, WRITE);
+	flush_dedupe_entries(sbi);
 
 	/*
 	 * update checkpoint pack index
@@ -1129,7 +1130,6 @@ void write_checkpoint(struct f2fs_sb_info *sbi, struct cp_control *cpc)
 	ckpt_ver = cur_cp_version(ckpt);
 	ckpt->checkpoint_ver = cpu_to_le64(++ckpt_ver);
 
-	flush_dedupe_entries(sbi);
 	/* write cached NAT/SIT entries to NAT/SIT area */
 	flush_nat_entries(sbi);
 	flush_sit_entries(sbi, cpc);

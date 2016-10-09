@@ -113,7 +113,8 @@ static inline bool f2fs_crc_valid(__u32 blk_crc, void *buf, size_t buf_size)
  */
 enum {
 	NAT_BITMAP,
-	SIT_BITMAP
+	SIT_BITMAP,
+	DEDUPE_BITMAP
 };
 
 enum {
@@ -1137,8 +1138,19 @@ static inline void *__bitmap_ptr(struct f2fs_sb_info *sbi, int flag)
 		else
 			return (unsigned char *)ckpt + F2FS_BLKSIZE;
 	} else {
-		offset = (flag == NAT_BITMAP) ?
-			le32_to_cpu(ckpt->sit_ver_bitmap_bytesize) : 0;
+		switch(flag)
+		{
+			case SIT_BITMAP:
+				offset = 0;
+				break;
+			case NAT_BITMAP:
+				offset = le32_to_cpu(ckpt->sit_ver_bitmap_bytesize);
+				break;
+			case DEDUPE_BITMAP:
+				offset = le32_to_cpu(ckpt->sit_ver_bitmap_bytesize) + le32_to_cpu(ckpt->nat_ver_bitmap_bytesize);
+				//printk("__bitmap_ptr:%d\n", offset);
+				break;
+		}
 		return &ckpt->sit_nat_version_bitmap + offset;
 	}
 }

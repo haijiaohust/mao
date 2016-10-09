@@ -6,9 +6,6 @@
 #include "dedupe.h"
 #include <linux/f2fs_fs.h>
 
-#define DEDUPE_MD_SIZE (12*1024*1024)
-#define DEDUPE_MD_ENTRY_COUNT (DEDUPE_MD_SIZE/sizeof(struct dedupe))
-
 int f2fs_dedupe_calc_hash(struct page *p, u8 hash[])
 {
 	//int i;
@@ -52,7 +49,7 @@ struct dedupe *f2fs_dedupe_search(u8 hash[], struct dedupe_info *dedupe_info)
 			return cur;
 		}
 	}
-	for(cur = dedupe_info->dedupe_md + DEDUPE_MD_ENTRY_COUNT - 1;cur != dedupe_info->cur;cur--)
+	for(cur = dedupe_info->dedupe_md + dedupe_info->dedupe_block_count * DEDUPE_PER_BLOCK - 1;cur != dedupe_info->cur;cur--)
 	{
 		if(unlikely(cur->ref&&!memcmp(hash, cur->hash, dedupe_info->digest_len)))
 		{
@@ -77,14 +74,14 @@ block_t f2fs_dedupe_search_addr(block_t addr, struct dedupe_info *dedupe_info)
 		}
 		if(unlikely(dedupe_info->cur == dedupe_info->dedupe_md))
 		{
-			cur = dedupe_info->dedupe_md + DEDUPE_MD_ENTRY_COUNT - 1;
+			cur = dedupe_info->dedupe_md + dedupe_info->dedupe_block_count * DEDUPE_PER_BLOCK - 1;
 		}
 		else
 		{
 			cur--;
 		}
 		search_count++;
-		if(search_count>DEDUPE_MD_ENTRY_COUNT)
+		if(search_count>dedupe_info->dedupe_block_count * DEDUPE_PER_BLOCK)
 		{
 			printk("can not add f2fs dedupe md.\n");
 			return 0;
@@ -95,7 +92,7 @@ block_t f2fs_dedupe_search_addr(block_t addr, struct dedupe_info *dedupe_info)
 
 void set_dedupe_dirty(struct dedupe_info *dedupe_info, struct dedupe *dedupe)
 {
-	set_bit((dedupe - dedupe_info->dedupe_md)/DEDUPE_PER_BLOCK), &dedupe_info->dedupe_md_dirty_bmp[0]);
+	set_bit((dedupe - dedupe_info->dedupe_md)/DEDUPE_PER_BLOCK,  (long unsigned int *)dedupe_info->dedupe_md_dirty_bitmap);
 }
 
 int f2fs_dedupe_delete_addr(block_t addr, struct dedupe_info *dedupe_info)
@@ -121,7 +118,7 @@ int f2fs_dedupe_delete_addr(block_t addr, struct dedupe_info *dedupe_info)
 			}
 		}
 	}
-	for(cur = dedupe_info->dedupe_md + DEDUPE_MD_ENTRY_COUNT - 1;cur != dedupe_info->cur;cur--)
+	for(cur = dedupe_info->dedupe_md + dedupe_info->dedupe_block_count * DEDUPE_PER_BLOCK - 1;cur != dedupe_info->cur;cur--)
 	{
 		if(unlikely(cur->ref && addr == cur->addr))
 		{
@@ -149,7 +146,7 @@ int f2fs_dedupe_add(u8 hash[], struct dedupe_info *dedupe_info, block_t addr)
 	dedupe_info->queue_len++;	
 	while(dedupe_info->cur->addr)
 	{
-		if(likely(dedupe_info->cur != dedupe_info->dedupe_md + DEDUPE_MD_ENTRY_COUNT - 1))
+		if(likely(dedupe_info->cur != dedupe_info->dedupe_md + dedupe_info->dedupe_block_count * DEDUPE_PER_BLOCK - 1))
 		{
 			dedupe_info->cur++;
 		}
@@ -158,7 +155,7 @@ int f2fs_dedupe_add(u8 hash[], struct dedupe_info *dedupe_info, block_t addr)
 			dedupe_info->cur = dedupe_info->dedupe_md;
 		}
 		search_count++;
-		if(search_count>DEDUPE_MD_ENTRY_COUNT)
+		if(search_count>dedupe_info->dedupe_block_count * DEDUPE_PER_BLOCK)
 		{
 			printk("can not add f2fs dedupe md.\n");
 			ret = -1;
@@ -183,13 +180,18 @@ int init_dedupe_info(struct dedupe_info *dedupe_info)
 	dedupe_info->digest_len = 16;
 	spin_lock_init(&dedupe_info->lock);
 	INIT_LIST_HEAD(&dedupe_info->queue);
-	dedupe_info->dedupe_md = vmalloc(DEDUPE_MD_SIZE);
-	memset(dedupe_info->dedupe_md, 0, DEDUPE_MD_SIZE);
-	memset(dedupe_info->dedupe_md_dirty_bmp, 0, 8*sizeof(unsigned long));
-	
+	dedupe_info->dedupe_md = vmalloc(dedupe_info->dedupe_size);
+	memset(dedupe_info->dedupe_md, 0, dedupe_info->dedupe_size);
+	dedupe_info->dedupe_md_dirty_bitmap = kzalloc(dedupe_info->bitmap_size, GFP_KERNEL);
 	dedupe_info->cur = dedupe_info->dedupe_md;
 
 	return ret;
 }
 
+void exit_dedupe_info(struct dedupe_info *dedupe_info)
+{
+	vfree(dedupe_info->dedupe_md);
+	kfree(dedupe_info->dedupe_md_dirty_bitmap);
+	kfree(dedupe_info->dedupe_bitmap);
+}
 
