@@ -1376,7 +1376,9 @@ try_onemore:
 		memcpy(((char *)sbi->dedupe_info.dedupe_md + i*(DEDUPE_PER_BLOCK * sizeof(struct dedupe))), page_address(page), DEDUPE_PER_BLOCK * sizeof(struct dedupe));
 		f2fs_put_page(page, 1);
 	}
-
+#ifdef F2FS_BLOOM_FILTER
+	init_f2fs_dedupe_bloom_filter(&sbi->dedupe_info);
+#endif
 	return 0;
 
 free_kobj:
