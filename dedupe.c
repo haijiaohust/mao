@@ -43,16 +43,14 @@ int f2fs_dedupe_bloom_filter(u8 hash[], struct dedupe_info *dedupe_info)
 {
 	int i;
 	unsigned int *pos = (unsigned int *)hash;
-	//printk("%x ",dedupe_info->bloom_filter_mask);
 	for(i=0;i<dedupe_info->bloom_filter_hash_fun_count;i++)
 	{
-		if(!dedupe_info->bloom_filter[*(pos++)&dedupe_info->bloom_filter_mask])
+		if(0 == dedupe_info->bloom_filter[*(pos++)&dedupe_info->bloom_filter_mask])
 		{
-			return 0;
+			return 1;
 		}
-		//printk("%x ",(*(pos++))&dedupe_info->bloom_filter_mask);
 	}
-	return 1;
+	return 0;
 }
 
 void init_f2fs_dedupe_bloom_filter(struct dedupe_info *dedupe_info)
@@ -82,13 +80,14 @@ struct dedupe *f2fs_dedupe_search(u8 hash[], struct dedupe_info *dedupe_info)
 #endif
 
 #ifdef F2FS_BLOOM_FILTER
-	if(!f2fs_dedupe_bloom_filter(hash, dedupe_info)) return NULL;
+	if(f2fs_dedupe_bloom_filter(hash, dedupe_info)) return NULL;
 #endif
 
 	for(cur=c; cur < dedupe_info->dedupe_md + dedupe_info->dedupe_block_count * DEDUPE_PER_BLOCK; cur++)
 	{
 		if(unlikely(cur->ref&&!memcmp(hash, cur->hash, dedupe_info->digest_len)))
 		{
+			dedupe_info->logical_blk_cnt++;
 			return cur;
 		}
 	}
@@ -96,6 +95,7 @@ struct dedupe *f2fs_dedupe_search(u8 hash[], struct dedupe_info *dedupe_info)
 	{
 		if(unlikely(cur->ref&&!memcmp(hash, cur->hash, dedupe_info->digest_len)))
 		{
+			dedupe_info->logical_blk_cnt++;
 			return cur;
 		}
 	}
@@ -119,6 +119,7 @@ int f2fs_dedupe_delete_addr(block_t addr, struct dedupe_info *dedupe_info)
 		if(unlikely(cur->ref && addr == cur->addr))
 		{
 			cur->ref--;
+			dedupe_info->logical_blk_cnt--;
 			dedupe_info->last_delete_dedupe = cur;
 			set_dedupe_dirty(dedupe_info, cur);
 			if(0 == cur->ref)
@@ -132,6 +133,7 @@ int f2fs_dedupe_delete_addr(block_t addr, struct dedupe_info *dedupe_info)
 				}
 #endif
 				cur->addr = 0;
+				dedupe_info->physical_blk_cnt--;
 				return 0;
 			}
 			else
@@ -145,6 +147,7 @@ int f2fs_dedupe_delete_addr(block_t addr, struct dedupe_info *dedupe_info)
 		if(unlikely(cur->ref && addr == cur->addr))
 		{
 			cur->ref--;
+			dedupe_info->logical_blk_cnt--;
 			dedupe_info->last_delete_dedupe = cur;
 			set_dedupe_dirty(dedupe_info, cur);
 			if(0 == cur->ref)
@@ -158,6 +161,8 @@ int f2fs_dedupe_delete_addr(block_t addr, struct dedupe_info *dedupe_info)
 				}
 #endif
 				cur->addr = 0;
+				dedupe_info->physical_blk_cnt--;
+
 				return 0;
 			}
 			else
@@ -199,17 +204,23 @@ int f2fs_dedupe_add(u8 hash[], struct dedupe_info *dedupe_info, block_t addr)
 	if(0 == ret)
 	{
 #ifdef F2FS_BLOOM_FILTER
-		unsigned int *pos = (unsigned int *)cur->hash;
+		unsigned int *pos;
 		int i;
-		for(i=0;i<dedupe_info->bloom_filter_hash_fun_count;i++)
-		{
-			dedupe_info->bloom_filter[*(pos++)&dedupe_info->bloom_filter_mask]++;
-		}
 #endif
 		cur->addr = addr;
 		cur->ref = 1;
 		memcpy(cur->hash, hash, dedupe_info->digest_len);
+#ifdef F2FS_BLOOM_FILTER
+				pos = (unsigned int *)cur->hash;
+				for(i=0;i<dedupe_info->bloom_filter_hash_fun_count;i++)
+				{
+					dedupe_info->bloom_filter[*(pos++)&dedupe_info->bloom_filter_mask]++;
+					//printk("add %d\n", *(pos++)&dedupe_info->bloom_filter_mask);
+				}
+#endif
 		set_dedupe_dirty(dedupe_info, cur);
+		dedupe_info->logical_blk_cnt++;
+		dedupe_info->physical_blk_cnt++;
 	}
 	return ret;
 }

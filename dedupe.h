@@ -2,7 +2,7 @@
 #define _DEDUPE_H
 
 #define F2FS_BLOOM_FILTER 1
-#define F2FS_NO_HASH 1
+//#define F2FS_NO_HASH 1
 
 #define DEDUPE_PER_BLOCK (PAGE_CACHE_SIZE/sizeof(struct dedupe))
 
@@ -23,6 +23,8 @@ struct dedupe_info
 	unsigned int *bloom_filter;
 	unsigned int bloom_filter_hash_fun_count;
 #endif
+	unsigned int logical_blk_cnt;
+	unsigned int physical_blk_cnt;
 	struct dedupe* dedupe_md;
 	char *dedupe_md_dirty_bitmap;	/*bitmap for dirty dedupe blocks*/
 	char *dedupe_bitmap;				/*bitmap for dedupe checkpoint*/

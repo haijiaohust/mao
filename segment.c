@@ -1431,7 +1431,7 @@ int allocate_data_block_dedupe(struct f2fs_sb_info *sbi, struct page *page,
 				spin_unlock(&sbi->dedupe_info.lock);
 			}
 		}
-		
+
 		mutex_unlock(&sit_i->sentry_lock);
 		mutex_unlock(&curseg->curseg_mutex);
 		return 1;

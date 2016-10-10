@@ -1133,7 +1133,7 @@ static int f2fs_fill_super(struct super_block *sb, void *data, int silent)
 	long err;
 	bool retry = true, need_fsck = false;
 	char *options = NULL;
-	int recovery, i;
+	int recovery, i, j;
 
 try_onemore:
 	err = -EINVAL;
@@ -1367,6 +1367,7 @@ try_onemore:
 	for(i=0; i<sbi->dedupe_info.dedupe_block_count; i++)
 	{	
 		u32 dedupe_base_blkaddr = le32_to_cpu(raw_super->dedupe_blkaddr);
+		struct dedupe *dedupe;
 		struct page *page = NULL;
 		if (f2fs_test_bit(i, sbi->dedupe_info.dedupe_bitmap))
 		{
@@ -1374,6 +1375,15 @@ try_onemore:
 		}
 		page = get_meta_page(sbi, dedupe_base_blkaddr + i);
 		memcpy(((char *)sbi->dedupe_info.dedupe_md + i*(DEDUPE_PER_BLOCK * sizeof(struct dedupe))), page_address(page), DEDUPE_PER_BLOCK * sizeof(struct dedupe));
+		dedupe = (struct dedupe *)((char *)sbi->dedupe_info.dedupe_md + i*(DEDUPE_PER_BLOCK * sizeof(struct dedupe)));
+		for(j=0; j<DEDUPE_PER_BLOCK; j++)
+		{
+			if((dedupe+j)->ref)
+			{
+				sbi->dedupe_info.logical_blk_cnt+=(dedupe+j)->ref;
+				sbi->dedupe_info.physical_blk_cnt++;
+			}
+		}
 		f2fs_put_page(page, 1);
 	}
 #ifdef F2FS_BLOOM_FILTER
