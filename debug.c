@@ -344,10 +344,10 @@ static int stat_show(struct seq_file *s, void *v)
 
 		/* dedupe info */
 		seq_printf(s, "\nDedupe:\n");
-		seq_printf(s, "logical blocks count:%u\n", si->sbi->dedupe_info.logical_blk_cnt);
-		seq_printf(s, "physical blocks count:%u\n", si->sbi->dedupe_info.physical_blk_cnt);
+		seq_printf(s, "  - lblk_cnt: %u \n", si->sbi->dedupe_info.logical_blk_cnt);
+		seq_printf(s, "  - pblk_cnt: %u \n", si->sbi->dedupe_info.physical_blk_cnt);
 		if(si->sbi->dedupe_info.physical_blk_cnt)
-			seq_printf(s, "dedupe rate:%u%%\n", (si->sbi->dedupe_info.logical_blk_cnt - si->sbi->dedupe_info.physical_blk_cnt) * 100 /si->sbi->dedupe_info.logical_blk_cnt);
+			seq_printf(s, "  - duprate: %u %%\n", (si->sbi->dedupe_info.logical_blk_cnt - si->sbi->dedupe_info.physical_blk_cnt) * 100 /si->sbi->dedupe_info.logical_blk_cnt);
 	}
 	mutex_unlock(&f2fs_stat_mutex);
 	return 0;

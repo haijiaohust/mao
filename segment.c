@@ -1395,7 +1395,7 @@ int allocate_data_block_dedupe(struct f2fs_sb_info *sbi, struct page *page,
 
 	curseg = CURSEG_I(sbi, type);
 
-	f2fs_dedupe_calc_hash(page, hash);
+	f2fs_dedupe_calc_hash(page, hash, &sbi->dedupe_info);
 	mutex_lock(&curseg->curseg_mutex);
 	mutex_lock(&sit_i->sentry_lock);
 

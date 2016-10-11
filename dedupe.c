@@ -6,19 +6,18 @@
 #include "dedupe.h"
 #include <linux/f2fs_fs.h>
 
-int f2fs_dedupe_calc_hash(struct page *p, u8 hash[])
+int f2fs_dedupe_calc_hash(struct page *p, u8 hash[], struct dedupe_info *dedupe_info)
 {
 	//int i;
 	int ret;
 	
-	struct crypto_shash *tfm = crypto_alloc_shash("md5", 0, 0);
 	struct {
 		struct shash_desc desc;
-		char ctx[crypto_shash_descsize(tfm)];
+		char ctx[dedupe_info->crypto_shash_descsize];
 	} sdesc;
 	char *d;
 
-	sdesc.desc.tfm = tfm;
+	sdesc.desc.tfm = dedupe_info->tfm;
 	sdesc.desc.flags = 0;
 	ret = crypto_shash_init(&sdesc.desc);
 	if (ret)
@@ -34,7 +33,6 @@ int f2fs_dedupe_calc_hash(struct page *p, u8 hash[])
 	}
 	printk("\n");*/
 
-	crypto_free_shash(tfm);
 	return ret;
 }
 
@@ -257,8 +255,10 @@ int init_dedupe_info(struct dedupe_info *dedupe_info)
 	memset(dedupe_info->bloom_filter, 0, dedupe_info->bloom_filter_mask * sizeof(unsigned int));
 	dedupe_info->bloom_filter_hash_fun_count = 4;
 #endif
-	dedupe_info->last_delete_dedupe = dedupe_info->dedupe_md;
 
+	dedupe_info->last_delete_dedupe = dedupe_info->dedupe_md;
+	dedupe_info->tfm = crypto_alloc_shash("md5", 0, 0);
+	dedupe_info->crypto_shash_descsize = crypto_shash_descsize(dedupe_info->tfm);
 	return ret;
 }
 
@@ -267,7 +267,7 @@ void exit_dedupe_info(struct dedupe_info *dedupe_info)
 	vfree(dedupe_info->dedupe_md);
 	kfree(dedupe_info->dedupe_md_dirty_bitmap);
 	kfree(dedupe_info->dedupe_bitmap);
-
+	crypto_free_shash(dedupe_info->tfm);
 #ifdef F2FS_BLOOM_FILTER
 	vfree(dedupe_info->bloom_filter);
 #endif

@@ -34,10 +34,12 @@ struct dedupe_info
 	struct dedupe* last_delete_dedupe;
 	struct list_head queue;
 	spinlock_t lock;
+	struct crypto_shash *tfm;
+	unsigned int crypto_shash_descsize;
 };
 
 
-extern int f2fs_dedupe_calc_hash(struct page *p, u8 hash[]);
+extern int f2fs_dedupe_calc_hash(struct page *p, u8 hash[], struct dedupe_info *dedupe_info);
 extern struct dedupe *f2fs_dedupe_search(u8 hash[], struct dedupe_info *dedupe_info);
 extern int f2fs_dedupe_add(u8 hash[], struct dedupe_info *dedupe_info, block_t addr);
 extern int init_dedupe_info(struct dedupe_info *dedupe_info);
