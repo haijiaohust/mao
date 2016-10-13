@@ -5,6 +5,7 @@
 #include <crypto/algapi.h>
 #include "dedupe.h"
 #include <linux/f2fs_fs.h>
+#include <linux/vmalloc.h>
 
 int f2fs_dedupe_calc_hash(struct page *p, u8 hash[], struct dedupe_info *dedupe_info)
 {
