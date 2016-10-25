@@ -1031,6 +1031,7 @@ static inline bool inc_valid_block_count(struct f2fs_sb_info *sbi,
 	block_t	valid_block_count;
 
 	spin_lock(&sbi->stat_lock);
+
 	valid_block_count =
 		sbi->total_valid_block_count + (block_t)count;
 	if (unlikely(valid_block_count > sbi->user_block_count)) {
@@ -1038,21 +1039,28 @@ static inline bool inc_valid_block_count(struct f2fs_sb_info *sbi,
 		return false;
 	}
 	inode->i_blocks += count;
-	sbi->total_valid_block_count = valid_block_count;
+	if(!(FS_COMPR_FL&F2FS_I(inode)->i_flags && S_ISREG(inode->i_mode)))
+	{
+		sbi->total_valid_block_count = valid_block_count;
+	}
 	sbi->alloc_valid_block_count += (block_t)count;
 	spin_unlock(&sbi->stat_lock);
 	return true;
 }
+
 
 static inline void dec_valid_block_count(struct f2fs_sb_info *sbi,
 						struct inode *inode,
 						blkcnt_t count)
 {
 	spin_lock(&sbi->stat_lock);
-	f2fs_bug_on(sbi, sbi->total_valid_block_count < (block_t) count);
+	//f2fs_bug_on(sbi, sbi->total_valid_block_count < (block_t) count);
 	f2fs_bug_on(sbi, inode->i_blocks < count);
 	inode->i_blocks -= count;
-	sbi->total_valid_block_count -= (block_t)count;
+	if(!(FS_COMPR_FL&F2FS_I(inode)->i_flags && S_ISREG(inode->i_mode)))
+	{
+		sbi->total_valid_block_count -= (block_t)count;
+	}
 	spin_unlock(&sbi->stat_lock);
 }
 

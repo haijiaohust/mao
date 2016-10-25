@@ -817,7 +817,8 @@ void refresh_sit_entry_dedupe(struct f2fs_sb_info *sbi, block_t old, block_t new
 	
 	if (GET_SEGNO(sbi, old) != NULL_SEGNO)
 	{
-		if (f2fs_dedupe_delete_addr(old, dedupe_info)>0)
+		int ret = f2fs_dedupe_delete_addr(old, dedupe_info);
+		if (ret>0)
 		{
 			spin_unlock(&dedupe_info->lock);
 			locate_dirty_segment(sbi, GET_SEGNO(sbi, new));
@@ -827,6 +828,12 @@ void refresh_sit_entry_dedupe(struct f2fs_sb_info *sbi, block_t old, block_t new
 		{
 			update_sit_entry(sbi, old, -1);
 			spin_unlock(&dedupe_info->lock);
+		}
+		if(0 == ret)
+		{
+			spin_lock(&sbi->stat_lock);
+			sbi->total_valid_block_count--;
+			spin_unlock(&sbi->stat_lock);
 		}
 	}
 
@@ -1410,6 +1417,9 @@ int allocate_data_block_dedupe(struct f2fs_sb_info *sbi, struct page *page,
 	{
 		*new_blkaddr = NEXT_FREE_BLKADDR(sbi, curseg);
 		f2fs_dedupe_add(hash, &sbi->dedupe_info, *new_blkaddr);
+		spin_lock(&sbi->stat_lock);
+		sbi->total_valid_block_count ++;
+		spin_unlock(&sbi->stat_lock);
 		spin_unlock(&sbi->dedupe_info.lock);
 	}
 	else
@@ -1421,7 +1431,8 @@ int allocate_data_block_dedupe(struct f2fs_sb_info *sbi, struct page *page,
 
 		if (GET_SEGNO(sbi, old_blkaddr) != NULL_SEGNO)
 		{
-			if (f2fs_dedupe_delete_addr(old_blkaddr, &sbi->dedupe_info)>0)
+			int ret = f2fs_dedupe_delete_addr(old_blkaddr, &sbi->dedupe_info);
+			if (ret>0)
 			{
 				spin_unlock(&sbi->dedupe_info.lock);
 			}
@@ -1429,6 +1440,12 @@ int allocate_data_block_dedupe(struct f2fs_sb_info *sbi, struct page *page,
 			{
 				update_sit_entry(sbi, old_blkaddr, -1);
 				spin_unlock(&sbi->dedupe_info.lock);
+			}
+			if(0 == ret)
+			{
+				spin_lock(&sbi->stat_lock);
+				sbi->total_valid_block_count--;
+				spin_unlock(&sbi->stat_lock);
 			}
 		}
 

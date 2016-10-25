@@ -489,7 +489,8 @@ int truncate_data_blocks_range(struct dnode_of_data *dn, int count)
 		nr_free++;
 		if(FS_COMPR_FL&F2FS_I(dn->inode)->i_flags)
 		{
-			if (f2fs_dedupe_delete_addr(blkaddr, dedupe_info)>0)
+			int ret = f2fs_dedupe_delete_addr(blkaddr, dedupe_info);
+			if (ret>0)
 			{
 				spin_unlock(&dedupe_info->lock);
 				continue;
@@ -497,6 +498,12 @@ int truncate_data_blocks_range(struct dnode_of_data *dn, int count)
 			else
 			{
 				spin_unlock(&dedupe_info->lock);
+			}
+			if(0 == ret)
+			{
+				spin_lock(&sbi->stat_lock);
+				sbi->total_valid_block_count--;
+				spin_unlock(&sbi->stat_lock);
 			}
 		}
 		invalidate_blocks(sbi, blkaddr);

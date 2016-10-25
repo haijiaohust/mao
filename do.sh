@@ -7,4 +7,4 @@ insmod f2fs.ko
 mount -o background_gc=off  /dev/sdc /mnt
 #mkdir /mnt/p
 ~/ioc /mnt/
-cd /opt/ltp/; for((i=1;i<=1;i++));do ./runltp -f fs -d /mnt;done
+cd /opt/ltp/; for((i=1;i<=1;i++));do ./runltp -f fs_2 -d /mnt;done
