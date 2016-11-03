@@ -1363,6 +1363,7 @@ try_onemore:
 	sbi->dedupe_info.bitmap_size = sbi->dedupe_info.dedupe_block_count/8;
 	sbi->dedupe_info.dedupe_size = sbi->dedupe_info.dedupe_block_count * DEDUPE_PER_BLOCK * sizeof(struct dedupe);
 	sbi->dedupe_info.dedupe_bitmap = kmemdup(__bitmap_ptr(sbi, DEDUPE_BITMAP), sbi->dedupe_info.bitmap_size, GFP_KERNEL);
+
 	init_dedupe_info(&sbi->dedupe_info);
 	for(i=0; i<sbi->dedupe_info.dedupe_block_count; i++)
 	{	

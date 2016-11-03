@@ -1141,6 +1141,7 @@ static inline void *__bitmap_ptr(struct f2fs_sb_info *sbi, int flag)
 	int offset;
 
 	if (__cp_payload(sbi) > 0) {
+		printk("ouch,fuck you~\n");
 		if (flag == NAT_BITMAP)
 			return &ckpt->sit_nat_version_bitmap;
 		else
@@ -1151,12 +1152,11 @@ static inline void *__bitmap_ptr(struct f2fs_sb_info *sbi, int flag)
 			case SIT_BITMAP:
 				offset = 0;
 				break;
-			case NAT_BITMAP:
+			case DEDUPE_BITMAP:
 				offset = le32_to_cpu(ckpt->sit_ver_bitmap_bytesize);
 				break;
-			case DEDUPE_BITMAP:
-				offset = le32_to_cpu(ckpt->sit_ver_bitmap_bytesize) + le32_to_cpu(ckpt->nat_ver_bitmap_bytesize);
-				//printk("__bitmap_ptr:%d\n", offset);
+			case NAT_BITMAP:
+				offset = le32_to_cpu(ckpt->sit_ver_bitmap_bytesize) + sbi->dedupe_info.bitmap_size;
 				break;
 		}
 		return &ckpt->sit_nat_version_bitmap + offset;
